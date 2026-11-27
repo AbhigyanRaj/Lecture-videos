@@ -23,7 +23,7 @@ if (process.platform === 'darwin') {
 }
 const browser = await chromium.launch(launch);
 const VCODEC = ENC === 'x264'
-  ? ['-c:v', 'libx264', '-preset', process.env.X264_PRESET || 'veryfast', '-crf', '19', '-g', '48', '-profile:v', 'high', '-level', '4.1', '-x264-params', 'threads=2']
+  ? ['-c:v', 'libx264', '-preset', process.env.X264_PRESET || 'veryfast', '-crf', process.env.CRF || '21', '-tune', 'animation', '-g', '48', '-profile:v', 'high', '-level', '4.1', '-x264-params', 'threads=2']
   : ['-c:v', 'h264_videotoolbox', '-b:v', '12M', '-maxrate', '18M', '-profile:v', 'high'];
 let next = 0, done = 0, frames = 0; const t0 = Date.now(), total = jobs.length;
 console.log(`rendering ${total} scenes with ${WORKERS} workers`);
