@@ -363,6 +363,63 @@
     });
   };
 
+  // ---------------- line graph (e.g. action potential) ----------------
+  const PRESETS = { action_potential: { xmax: 5, ymin: -90, ymax: 40, points: [[0, -70], [0.9, -70], [1.25, -64], [1.5, -55], [1.72, -10], [1.92, 30], [2.12, 18], [2.45, -40], [2.75, -78], [3.05, -82], [3.6, -76], [4.3, -71], [5, -70]] } };
+  TPL.graph = (s, L) => {
+    heading(L, s.title, 120, at(0) + .2, { size: 84 });
+    const P = Object.assign({}, PRESETS[s.curve] || {}, s); const pts = P.points || [[0, 0], [1, 1]];
+    const xmax = P.xmax ?? Math.max(...pts.map(p => p[0])), ymin = P.ymin ?? Math.min(...pts.map(p => p[1])), ymax = P.ymax ?? Math.max(...pts.map(p => p[1]));
+    const X0 = 300, X1 = 1640, Y0 = 900, Y1 = 230, px = x => X0 + x / xmax * (X1 - X0), py = y => Y0 - (y - ymin) / (ymax - ymin) * (Y0 - Y1);
+    Ink.rough(svg, L, 'line', [X0, Y0, X1 + 30, Y0], { stroke: C.cream, strokeWidth: 5, seed: 300 }, at(0), .5);
+    Ink.rough(svg, L, 'line', [X0, Y0, X0, Y1 - 30], { stroke: C.cream, strokeWidth: 5, seed: 301 }, at(0), .5);
+    text(L, P.xlabel || 'time', { x: (X0 + X1) / 2, y: Y0 + 80, size: 44, maxLines: 1, anchor: 'middle', at: at(0) + .4 });
+    const yl = el('g', { transform: `translate(${X0 - 150},${(Y0 + Y1) / 2}) rotate(-90)` }, L);
+    text(yl, P.ylabel || 'value', { x: 0, y: 0, size: 44, maxLines: 1, anchor: 'middle', at: at(0) + .6 });
+    const step = (ymax - ymin) > 160 ? 50 : (ymax - ymin) > 40 ? 20 : 10;
+    for (let v = Math.ceil(ymin / step) * step; v <= ymax; v += step) {
+      const t = el('text', { x: X0 - 22, y: py(v) + 12, 'text-anchor': 'end', 'font-family': 'Note', 'font-size': 32, fill: C.cream }, L); t.textContent = String(v);
+      on(tt => t.style.opacity = clamp((tt - at(0) - .5) / .3));
+    }
+    (P.hlines || []).forEach((h, i) => {
+      const y = py(h.y), g = el('g', {}, L);
+      el('line', { x1: X0, x2: X1, y1: y, y2: y, stroke: i % 2 ? '#8fa6ff' : C.amber, 'stroke-width': 3, 'stroke-dasharray': '14 12', opacity: .8 }, g);
+      on(tt => g.style.opacity = clamp((tt - at(0) - .7 - i * .2) / .3));
+      text(L, h.label, { x: X1 + 10, y: y + 12, size: 34, maxW: 260, maxLines: 1, color: i % 2 ? '#8fa6ff' : C.amber, at: at(0) + .8 + i * .2, pen: false });
+    });
+    // smooth curve through the points (Catmull-Rom -> cubic bezier)
+    const Q = pts.map(([x, y]) => [px(x), py(y)]);
+    let d = `M${Q[0][0]} ${Q[0][1]}`;
+    for (let i = 0; i < Q.length - 1; i++) {
+      const p0 = Q[i - 1] || Q[i], p1 = Q[i], p2 = Q[i + 1], p3 = Q[i + 2] || p2;
+      d += ` C${p1[0] + (p2[0] - p0[0]) / 6} ${p1[1] + (p2[1] - p0[1]) / 6}, ${p2[0] - (p3[0] - p1[0]) / 6} ${p2[1] - (p3[1] - p1[1]) / 6}, ${p2[0]} ${p2[1]}`;
+    }
+    const path = el('path', { d, fill: 'none', stroke: C.amber, 'stroke-width': 9, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', filter: 'url(#boil)' }, L);
+    const Ltot = path.getTotalLength(); path.style.strokeDasharray = Ltot;
+    const t1 = at(1), t2 = Math.max(t1 + 2.5, (R.length > 2 ? at(2) : t1 + 4) - .1);
+    const dot = el('circle', { r: 16, fill: C.cream, stroke: C.ink, 'stroke-width': 4, filter: 'url(#glow)' }, L);
+    on(t => { const q = clamp((t - t1) / (t2 - t1)); path.style.strokeDashoffset = Ltot * (1 - q); const pt = path.getPointAtLength(Ltot * q); dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y); dot.style.opacity = q > 0 && q < 1 ? 1 : 0; });
+    // where is the curve at x? (search along the path)
+    const yAt = X => { let lo = 0, hi = Ltot; for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2; if (path.getPointAtLength(m).x < X) lo = m; else hi = m; } return path.getPointAtLength(lo); };
+    // phase labels: try above / below / right / left of the point; take the first spot inside the plot that overlaps nothing
+    const boxes = [[X0 - 10, Y0 - 10, X1 + 300, Y0 + 100], ...(P.hlines || []).map(h => [X0, py(h.y) - 8, X1, py(h.y) + 8])], hit = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+    const curveBox = (x0, y0, x1, y1) => { for (let L2 = 0; L2 < Ltot; L2 += 12) { const q = path.getPointAtLength(L2); if (q.x > x0 && q.x < x1 && q.y > y0 - 8 && q.y < y1 + 8) return true; } return false; };
+    (P.phases || []).forEach((ph, i) => {
+      const pt = yAt(px(ph.x)), t0 = at(2 + i);
+      numDot(L, i + 1, pt.x, pt.y, t0, 24);
+      const f = Ink.fit(ph.label, 'hand', 44, 300, 1, 30), w = Ink.measure(f.lines[0], 'hand', f.size, 2) + 10, h = f.size * 1.1;
+      const cand = [[0, -70], [0, 80], [w / 2 + 50, 14], [-w / 2 - 50, 14], [0, -130], [0, 140], [w / 2 + 50, -60], [-w / 2 - 50, -60], [w / 2 + 50, 80], [-w / 2 - 50, 80]];
+      let best = cand[0];
+      for (const [dx, dy] of cand) {
+        const cx = pt.x + dx, by = pt.y + dy, b = [cx - w / 2, by - h * .85, cx + w / 2, by + h * .25];
+        if (b[0] < X0 + 10 || b[2] > X1 + 280 || b[1] < 170 || b[3] > Y0 - 5) continue;
+        if (boxes.some(o => hit(o, b)) || curveBox(...b)) continue;
+        best = [dx, dy]; break;
+      }
+      const lx = pt.x + best[0], ly = pt.y + best[1]; boxes.push([lx - w / 2, ly - h * .85, lx + w / 2, ly + h * .25]);
+      text(L, ph.label, { x: lx, y: ly, font: 'hand', size: f.size, maxW: 320, maxLines: 1, color: C.cream, anchor: 'middle', at: t0 + .2 });
+    });
+  };
+
   // ---------------- particle simulations ----------------
   function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
   function particle(parent, kind, r) {

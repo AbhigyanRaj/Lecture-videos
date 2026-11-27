@@ -15,7 +15,7 @@ On-screen text is **English, short, and uses the exact terms from the notes**. N
 
 ## ImgRef: a picture made by the image model
 `{"id": "snake_case_id", "prompt": "what to draw: one subject, no text", "acc": true}`
-- `acc: true` means the biology must be accurate (organelles, cells, organs, molecules), so the better model is used. `acc: false` is for everyday objects and scenes (car, crystal, hot pan, person).
+- `acc: true` (paid, accurate model) ONLY for detailed biological structure: cells, organelles, molecules, membranes and channels, synapses, junctions, processes. `acc: false` (free model) for simple whole things where small details don't matter: a whole organ or brain, the human body, people and stick figures, everyday objects and scenes (car, crystal, hot pan). The free model draws detailed structures wrongly, so never use it for those.
 - **Reuse the core library ids** (below) whenever they fit. New ids must start with your step prefix, e.g. `s05_sodium_pump`.
 - Prompts describe a single isolated subject on a transparent background. Never ask for text or labels in the picture: labels are drawn by the engine.
 - Stick-figure people: say "a simple stick figure with a big round white head".
@@ -38,6 +38,7 @@ On-screen text is **English, short, and uses the exact terms from the notes**. N
 | `sim` | `mode` (see below), `title` ≤5 words, `labels` {mode-specific} | 0 setup, 1 motion, 2 result |
 | `scale` | `title` ≤5 words, `min` number, `max` number, `left` ≤3 words, `right` ≤3 words, `points` [1–4 {`v` number, `label` ≤3 words}] | 0 axis, 1..n points |
 | `quiz` | `question` ≤22 words, `options` [2–4, ≤8 words], `answer` index, `why` ≤16 words, `kind` "check" or "mcq" | 0 question, 1..n options, n+1 answer + why |
+| `graph` | `title` ≤5 words, `xlabel`, `ylabel` (≤4 words each), either `curve: "action_potential"` (built-in standard AP: x 0–5 ms, y −90…+40 mV) or `points` [[x,y],…] (+ `xmax`, `ymin`, `ymax`), `hlines` [0–3 {`y`, `label` ≤3 words}] (e.g. resting −70, threshold −55, 0 mV), `phases` [1–6 {`x`, `label` ≤3 words}] (x position along the curve) | 0 axes + hlines, 1 the curve draws itself (over this line), 2.. phases (numbered markers on the curve) |
 | `recap` | `title` ≤4 words, `points` [3–7, ≤8 words] | 0..n-1 |
 
 **`sim` modes and labels** (code-drawn particle animations):
