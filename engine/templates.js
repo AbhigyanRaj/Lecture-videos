@@ -150,7 +150,7 @@
 
   TPL.zoom = (s, L) => {
     const lv = s.levels, n = lv.length, groups = [];
-    const crumbsY = 1000;
+    const crumbsY = 960;
     lv.forEach((l, i) => {
       const g = el('g', {}, L); groups.push(g);
       const clip = el('clipPath', { id: `zc${i}` }, defs); const c = el('circle', { cx: W / 2, cy: 540, r: i ? 0 : 3000 }, clip);
@@ -160,7 +160,7 @@
       const inner = el('g', {}, g);
       image(inner, l.img.id, W / 2, 560, 760, 680, at(i) + (i ? .35 : 0));
       heading(g, l.label, 170, at(i) + .45, { size: 110 });
-      if (l.caption) text(g, l.caption, { x: W / 2, y: 900, size: 52, maxW: 1400, maxLines: 1, anchor: 'middle', at: at(i) + 1.0 });
+      if (l.caption) text(g, l.caption, { x: W / 2, y: 880, size: 52, maxW: 1400, maxLines: 1, anchor: 'middle', at: at(i) + 1.0 });
       const ring = el('circle', { cx: W / 2, cy: 540, r: 0, fill: 'none', stroke: C.ink, 'stroke-width': 30, filter: 'url(#boil)' }, L);
       on(t => {
         if (i) { const r = key(t, [[at(i) - .05, 0], [at(i) + .55, 1250, 'in']]); c.setAttribute('r', r); ring.setAttribute('r', r); ring.style.opacity = r > 0 && r < 1240 ? 1 : 0; }
