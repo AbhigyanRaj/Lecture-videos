@@ -135,7 +135,9 @@
       c.type === 'C' ? `C${n2(c.x1)} ${n2(c.y1)} ${n2(c.x2)} ${n2(c.y2)} ${n2(c.x)} ${n2(c.y)}` : 'Z').join('');
   }
   const SUB = { '→': '->', '←': '<-', '−': '-', '–': '-', '—': '-', '≈': '~', '×': 'x', '’': "'", '‘': "'", '“': '"', '”': '"', '…': '...', '⁺': '+', '⁻': '-' };
+  const GREEK = { 'α': 'alpha', 'β': 'beta', 'γ': 'gamma', 'δ': 'delta', 'ε': 'epsilon', 'κ': 'kappa', 'λ': 'lambda', 'μ': 'mu', 'π': 'pi', 'σ': 'sigma', 'τ': 'tau', 'ω': 'omega', 'Δ': 'Delta' };
   function clean(text, f) {
+    text = String(text).replace(/\s*\([\u0370-\u03FF]\)/g, '').replace(/[\u0370-\u03FF]/g, c => f.charToGlyphIndex(c) > 0 ? c : (GREEK[c] || ''));
     return [...String(text)].map(c => SUB[c] ?? c).join('').split('').filter(c => c === ' ' || f.charToGlyphIndex(c) > 0).join('');
   }
   function tp(text, font = 'hand', size = 100, tracking = 0) {
