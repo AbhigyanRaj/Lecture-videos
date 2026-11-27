@@ -67,7 +67,7 @@
 
   // hand-write text (glyph outlines from textpaths.mjs) with a pen nib that follows the ink
   function write(parent, tp, { x, y, at, dur, color = C.cream, outline = C.ink, sw = 3.2, pen = null, anchor = 'start' }) {
-    const g = el('g', { transform: `translate(${anchor === 'middle' ? x - tp.w / 2 : x},${y})` }, parent);
+    const g = el('g', { transform: `translate(${anchor === 'middle' ? x - tp.w / 2 : anchor === 'end' ? x - tp.w : x},${y})` }, parent);
     const ps = tp.glyphs.map(gl => el('path', { d: gl.d, fill: color, stroke: outline, 'stroke-width': sw, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'paint-order': 'stroke', 'fill-opacity': 0 }, g));
     const items = draw(ps, at, dur, { fill: true, fillDelay: .02 });
     if (pen) pens.add(pen);

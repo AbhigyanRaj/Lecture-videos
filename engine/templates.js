@@ -301,8 +301,8 @@
     const bar = el('rect', { x: x0, y: y - 30, width: x1 - x0, height: 60, rx: 30, fill: `url(#${gid})`, stroke: C.ink, 'stroke-width': 5 }, L);
     const clip = el('clipPath', { id: gid + 'c' }, defs); const cr = el('rect', { x: x0 - 10, y: y - 60, width: 0, height: 120 }, clip); bar.setAttribute('clip-path', `url(#${gid}c)`);
     on(t => cr.setAttribute('width', (x1 - x0 + 20) * prog(t, at(0), .9, 'inOut')));
-    const span = mx - mn, stepv = span <= 14 ? 1 : Math.ceil(span / 10);
-    for (let v = mn; v <= mx + 1e-9; v += stepv) {
+    const span = mx - mn, stepv = span <= 14 ? 1 : [2, 5, 10, 20, 25, 50, 100, 200, 500].find(v => span / v <= 10) || Math.ceil(span / 10);
+    for (let v = Math.ceil(mn / stepv) * stepv; v <= mx + 1e-9; v += stepv) {
       const x = x0 + (v - mn) / span * (x1 - x0), tt = el('text', { x, y: y + 80, 'text-anchor': 'middle', 'font-family': 'Note', 'font-size': 34, fill: C.cream }, L); tt.textContent = String(+v.toFixed(2));
       on(t => tt.style.opacity = clamp((t - at(0) - .2 - (v - mn) / span * .7) / .2));
     }
