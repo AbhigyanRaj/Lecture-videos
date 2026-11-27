@@ -19,8 +19,11 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - run: npx playwright install --with-deps chromium-headless-shell
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+      - name: install browser + ffmpeg (with retries)
+        run: |
+          for i in 1 2 3 4; do npx playwright install --with-deps chromium-headless-shell && break; echo "retry $i"; sleep 15; done
+          for i in 1 2 3 4; do (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null) && break; echo "retry $i"; sleep 15; done
+          which ffmpeg
       - name: fetch scene bundle
         env: { GH_TOKEN: "${{ github.token }}" }
         run: gh release download "${{ inputs.tag }}" -p "bundle.tar.gz" && tar xzf bundle.tar.gz
