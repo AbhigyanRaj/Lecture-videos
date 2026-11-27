@@ -1,0 +1,31 @@
+name: render
+on:
+  workflow_dispatch:
+    inputs:
+      block: { description: "block id, e.g. B1", required: true }
+      shards: { description: "JSON array of shard ids to run", required: true }
+      tag: { description: "release tag holding the scene bundle", required: true }
+permissions: { contents: read }
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: { shard: "${{ fromJson(inputs.shards) }}" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium-headless-shell
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+      - name: fetch scene bundle
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh release download "${{ inputs.tag }}" -p "bundle.tar.gz" && tar xzf bundle.tar.gz
+      - name: render shard
+        env: { ENC: x264, WORKERS: "3", SCENES_DIR: "${{ github.workspace }}/work/scenes", OUT_DIR: "${{ github.workspace }}/out", ASSET_ROOT: "${{ github.workspace }}" }
+        run: node scripts/render_jobs.mjs work/shards/${{ matrix.shard }}.txt
+      - uses: actions/upload-artifact@v4
+        with: { name: "${{ inputs.block }}-shard-${{ matrix.shard }}", path: out/*.mp4, retention-days: 2, compression-level: 0 }

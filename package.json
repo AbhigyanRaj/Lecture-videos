@@ -1,0 +1,2 @@
+{ "name": "lecture-videos", "private": true, "type": "commonjs",
+  "dependencies": { "playwright": "1.57.0", "roughjs": "4.6.6", "opentype.js": "2.0.0" } }
