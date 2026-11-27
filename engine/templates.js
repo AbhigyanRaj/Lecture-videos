@@ -363,6 +363,32 @@
     });
   };
 
+  // ---------------- mind map: centre + branches (+ short children), optional focus branch ----------------
+  TPL.mindmap = (s, L) => {
+    const br = s.branches || [], n = br.length, cx = W / 2, cy = s.title ? 600 : 560, focus = s.focus ?? -1;
+    if (s.title) heading(L, s.title, 105, at(0), { size: 70 });
+    const cg = el('g', {}, L);
+    Ink.rough(svg, cg, 'ellipse', [cx, cy, 420, 150], { fill: 'rgba(244,163,64,.25)', fillStyle: 'solid', stroke: C.amber, strokeWidth: 6, seed: 400 }, at(0), .5);
+    text(L, s.center, { x: cx, y: cy + 14, font: 'hand', size: 50, maxW: 370, maxLines: 2, color: C.cream, anchor: 'middle', at: at(0) + .3, lh: 1.0 });
+    const rx = 690, ry = s.title ? 300 : 330, bw = n > 6 ? 320 : 350;
+    br.forEach((b, i) => {
+      const a = -Math.PI / 2 + i * 2 * Math.PI / n, x = cx + rx * Math.cos(a), y = cy + ry * Math.sin(a), t0 = at(1 + i);
+      const isF = i === focus, dim = focus >= 0 && !isF;
+      const g = el('g', {}, L);
+      const ex = cx + 215 * Math.cos(a), ey = cy + 80 * Math.sin(a);
+      Ink.rough(svg, g, 'curve', [[[ex, ey], [(ex + x) / 2 + 30 * Math.sin(a), (ey + y) / 2 - 20 * Math.cos(a)], [x - (bw / 2) * Math.cos(a) * .7, y - 40 * Math.sin(a)]]], { stroke: isF ? C.amber : C.cream, strokeWidth: isF ? 7 : 4, seed: 410 + i }, t0, .4);
+      const bh = 84, bx = x - bw / 2, by = y - bh / 2;
+      const fill = el('rect', { x: bx, y: by, width: bw, height: bh, rx: 40, fill: isF ? C.amber : 'rgba(18,14,28,.7)' }, g);
+      on(t => fill.style.opacity = clamp((t - t0 - .2) / .3));
+      Ink.rough(svg, g, 'rectangle', [bx, by, bw, bh], { stroke: isF ? C.amber : C.cream, strokeWidth: 4, seed: 420 + i }, t0, .4);
+      text(g, b.label, { x, y: y + 13, font: 'hand', size: 40, maxW: bw - 64, maxLines: 1, color: isF ? C.ink : C.amber, outline: isF ? C.amber : C.ink, anchor: 'middle', at: t0 + .15 });
+      const kids = (b.children || []).slice(0, 4), up = Math.sin(a) < -0.2, ky0 = up ? by - 18 - (kids.length - 1) * 32 : by + bh + 34;
+      kids.forEach((k, j) => text(g, k, { x, y: ky0 + j * 32, size: 26, maxW: bw + 40, maxLines: 1, color: C.cream, anchor: 'middle', at: t0 + .4 + j * .12, pen: false }));
+      if (isF) g.setAttribute('filter', 'url(#glow)');
+      on(t => g.style.opacity = dim ? .38 : 1);
+    });
+  };
+
   // ---------------- line graph (e.g. action potential) ----------------
   const PRESETS = { action_potential: { xmax: 5, ymin: -90, ymax: 40, points: [[0, -70], [0.9, -70], [1.25, -64], [1.5, -55], [1.72, -10], [1.92, 30], [2.12, 18], [2.45, -40], [2.75, -78], [3.05, -82], [3.6, -76], [4.3, -71], [5, -70]] } };
   TPL.graph = (s, L) => {
