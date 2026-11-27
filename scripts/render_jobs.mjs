@@ -21,14 +21,16 @@ if (process.platform === 'darwin') {
   const exe = fs.readdirSync(cache).filter(d => d.startsWith('chromium_headless_shell-')).sort().pop();
   launch.executablePath = `${cache}/${exe}/chrome-headless-shell-mac-arm64/chrome-headless-shell`;
 }
-const browser = await chromium.launch(launch);
+// one browser per ~3 workers: a single browser serialises screenshot compositing across many pages
+const NB = Math.max(1, Math.ceil((+(process.env.WORKERS || 3)) / (+(process.env.PAGES_PER_BROWSER || 3))));
+const browsers = await Promise.all([...Array(NB)].map(() => chromium.launch(launch)));
 const VCODEC = ENC === 'x264'
   ? ['-c:v', 'libx264', '-preset', process.env.X264_PRESET || 'veryfast', '-crf', process.env.CRF || '21', '-tune', 'animation', '-g', '48', '-profile:v', 'high', '-level', '4.1', '-x264-params', 'threads=2']
   : ['-c:v', 'h264_videotoolbox', '-b:v', '12M', '-maxrate', '18M', '-profile:v', 'high'];
 let next = 0, done = 0, frames = 0; const t0 = Date.now(), total = jobs.length;
 console.log(`rendering ${total} scenes with ${WORKERS} workers`);
 async function worker(w) {
-  const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+  const page = await browsers[w % browsers.length].newPage({ viewport: { width: 1920, height: 1080 } });
   const errs = []; page.on('pageerror', e => errs.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
   await page.goto('file://' + B + '/engine/player.html');
@@ -55,5 +57,5 @@ async function worker(w) {
   await page.close();
 }
 await Promise.all([...Array(WORKERS).keys()].map(worker));
-await browser.close();
+await Promise.all(browsers.map(b => b.close()));
 console.log('ALL SCENES DONE');
